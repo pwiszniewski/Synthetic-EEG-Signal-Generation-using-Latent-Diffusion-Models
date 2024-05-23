@@ -27,12 +27,15 @@ set_determinism(42)
 
 import torch
 
-if os.path.exists('/project'):
-    base_path = '/project/'
-    base_path_data = '/data/'
-else:
-    base_path = '/home/bru/PycharmProjects/DDPM-EEG/'
-    base_path_data = base_path
+# if os.path.exists('/project'):
+#     base_path = '/project/'
+#     base_path_data = '/data/'
+# else:
+#     base_path = '/home/bru/PycharmProjects/DDPM-EEG/'
+#     base_path_data = base_path
+
+base_path = './'
+base_path_data = './data/'
 
 class ParseListAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -47,48 +50,53 @@ def parse_args():
         "--config_file",
         type=str,
         #default="/home/bru/PycharmProjects/DDPM-EEG/config/config_aekl_eeg.yaml",
-        default="/project/config/config_encoder_eeg.yaml",
+        # default="/project/config/config_encoder_eeg.yaml",
+        default="../config/config_aekl_eeg.yaml",
         help="Path to config file with all the training parameters needed",
     )
     parser.add_argument(
         "--path_train_ids",
         type=str,
         #default="/home/bru/PycharmProjects/DDPM-EEG/data/ids/ids_sleep_edfx_cassette_train.csv",
-        default="/project/data/ids/ids_sleep_edfx_cassette_double_train.csv",
+        default="../data/ids/ids_sleep_edfx_cassette_double_train.csv",
     )
 
     parser.add_argument(
         "--path_valid_ids",
         type=str,
         #default="/home/bru/PycharmProjects/DDPM-EEG/data/ids/ids_sleep_edfx_cassette_valid.csv",
-        default="/project/data/ids/ids_sleep_edfx_cassette_double_valid.csv",
+        default="../data/ids/ids_sleep_edfx_cassette_double_valid.csv",
     )
     parser.add_argument(
         "--path_cached_data",
         type=str,
         #default="/home/bru/PycharmProjects/DDPM-EEG/data/pre",
-        default="/data/pre",
+        default="../data/pre",
     )
 
     parser.add_argument(
         "--path_pre_processed",
         type=str,
         #default="/home/bru/PycharmProjects/DDPM-EEG/data/pre-processed",
-        default="/data/physionet-sleep-data-npy",
+        default="../data/physionet-sleep-data-npy",
     )
 
     parser.add_argument(
         "--num_channels",
-        type=str, action=ParseListAction
+        type=str, action=ParseListAction,
+        default=[0, 1, 2],
     )
 
     parser.add_argument(
         "--spe",
-        type=str, 
+        type=str,
+        default="no-spectral",
+        choices=["spectral", "no-spectral"]
     )
     parser.add_argument(
         "--latent_channels",
         type=int,
+        default=3,
     )
     parser.add_argument(
         "--type_dataset",
@@ -97,7 +105,8 @@ def parse_args():
     parser.add_argument(
         "--dataset",
         type=str,
-        choices=["edfx", "shhs", "shhsh"]
+        choices=["edfx", "shhs", "shhsh"],
+        default="edfx",
     )
     args = parser.parse_args()
     return args

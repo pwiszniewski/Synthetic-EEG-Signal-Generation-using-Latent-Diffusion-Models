@@ -11,4 +11,4 @@ mlflow
 git+https://github.com/braindecode/braindecode.git#egg=braindecode
 monai-generative
 tensorboard
-
+lpips==0.1.4

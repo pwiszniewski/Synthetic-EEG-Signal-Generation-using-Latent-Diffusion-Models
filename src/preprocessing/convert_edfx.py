@@ -5,15 +5,22 @@ import numpy as np
 from pathlib import Path
 from mne.datasets.sleep_physionet.age import fetch_data
 
-folder_data = Path("/data/")
+"""
+download the data from Physionet Sleep database and save it as numpy files
+"""
+
+folder_data = Path("../data/")
 folder_data.mkdir(parents=True, exist_ok=True)
 
 mne.set_config("PHYSIONET_SLEEP_PATH", folder_data.as_posix())
 
-subject_ids = None
+# subject_ids = None
+subject_ids = [0, 1]
 recording_ids = None
 load_eeg_only = True
 crop_wake_mins = 30
+
+######################################################################
 
 if subject_ids is None:
     subject_ids = range(83)
@@ -22,7 +29,7 @@ if recording_ids is None:
 
 paths = fetch_data(
     subjects=subject_ids,
-    recording=recording_ids, on_missing='warn')
+    recording=recording_ids, on_missing='warn') # Download the data
 
 ch_mapping = {
     'EOG horizontal': 'eog',
@@ -34,11 +41,11 @@ ch_mapping = {
 exclude = list(ch_mapping.keys()) if load_eeg_only else ()
 
 for p in paths:
-    raw = mne.io.read_raw_edf(p[0], preload=True, exclude=exclude)
+    raw = mne.io.read_raw_edf(p[0], preload=True, exclude=exclude)  # Load the data
     annots = mne.read_annotations(p[1])
     raw = raw.set_annotations(annots, emit_warning=False)
     # Rename EEG channels
-    ch_names = {i: i.replace('EEG ', '') for i in raw.ch_names if 'EEG' in i}
+    ch_names = {i: i.replace('EEG ', '') for i in raw.ch_names if 'EEG' in i} # Rename EEG channels
     raw = raw.rename_channels(ch_names)
     mask = [
         x[-1] in ['1', '2', '3', '4', 'R'] for x in annots.description]

@@ -6,8 +6,8 @@ train:
     num_workers: 1
     drop_last: false
     base_path: 'data/sleep-edfx'
-    output_dir: '/project/outputs'
-    run_dir: 'aekl_eeg'
+    output_dir: 'aekl_eeg'
+    run_dir: 'aekl_eeg_full'
     experiment: 'AEKL'
 models:
   optimizer_g_lr: 0.005 #Mexer, menor 10E-4

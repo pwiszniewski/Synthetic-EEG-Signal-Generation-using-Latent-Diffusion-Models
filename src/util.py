@@ -19,6 +19,7 @@ from omegaconf import OmegaConf
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from torch.cuda.amp import autocast
+import scipy
 
 class ParseListAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -29,7 +30,7 @@ class ParseListAction(argparse.Action):
 def setup_run_dir(config, args, base_path):
     # Create output directory
 
-    output_dir = Path(base_path+config.train.output_dir)
+    output_dir = Path(base_path) / config.train.output_dir
     output_dir.mkdir(exist_ok=True, parents=True)
 
     # Extract number of channels from list from args
@@ -160,17 +161,24 @@ def log_reconstructions(
         step: int,
         run_dir,
         name: str = "RECONSTRUCTION",
+        file_type: str = 'npy'
 ):
+    assert file_type in ['npy', 'mat'], "File type must be 'npy' or 'mat'"
     fig = get_figure(
         img,
         recons,
     )
     writer.add_figure(f"{name}", fig, step)
-    name_original = f"original_{name}_{step}.npy"
-    name_reconstr = f"reconstr_{name}_{step}.npy"
-    fig_name = f"original_{step}.pdf"
-    np.save(str(run_dir / name_original), img)
-    np.save(str(run_dir / name_reconstr), recons)
+    name_original = f"original_{name}_{step}.{file_type}"
+    name_reconstr = f"reconstr_{name}_{step}.{file_type}"
+    # fig_name = f"original_{step}.pdf"
+    if file_type == 'npy':
+        np.save(str(run_dir / name_original), img)
+        np.save(str(run_dir / name_reconstr), recons)
+    else:
+        scipy.io.savemat(str(run_dir / name_original), {'original': img})
+        scipy.io.savemat(str(run_dir / name_reconstr), {'reconstr': recons})
+
 
 def log_spectral(
         eeg: torch.Tensor,
@@ -179,20 +187,28 @@ def log_spectral(
         run_dir,
         step: int,
         name: str = "SPECTRAL_RECONSTRUCTION",
+        file_type: str = 'pkl'
 ):
+    assert file_type in ['pkl', 'mat'], "File type must be 'pkl' or 'mat'"
     fig, spectral, spectral_rec  = get_epochs_spectrum(
         eeg,
         recons,
     )
     writer.add_figure(f"{name}", fig, step)
-    name_original = f"original_spe_{name}_{step}.pkl"
-    name_reconstr = f"reconstr_spe_{name}_{step}.pkl"
-    fig_name = f"compare_{name}_{step}.pdf"
-    fig.savefig(str(run_dir / fig_name), bbox_inches='tight')
-    with open(str(run_dir / name_original), 'wb') as fo:  
-        joblib.dump(spectral, fo)
-    with open(str(run_dir / name_reconstr), 'wb') as fo:  
-        joblib.dump(spectral_rec, fo)
+    name_original = f"original_spe_{name}_{step}.{file_type}"
+    name_reconstr = f"reconstr_spe_{name}_{step}.{file_type}"
+    fig_name = f"compare_{name}_{step}.png"
+    fir_dir = Path(run_dir)
+    fig.savefig(str(fir_dir / fig_name), bbox_inches='tight')
+    if file_type == 'mat':
+        scipy.io.savemat(str(run_dir / name_original), {'original': eeg})
+        scipy.io.savemat(str(run_dir / name_reconstr), {'reconstr': recons})
+    else:
+        with open(str(run_dir / name_original), 'wb') as fo:
+            joblib.dump(spectral, fo)
+        with open(str(run_dir / name_reconstr), 'wb') as fo:
+            joblib.dump(spectral_rec, fo)
+
 
 def log_mlflow(
         model,

@@ -34,11 +34,13 @@ import torch
 #     base_path = '/home/bru/PycharmProjects/DDPM-EEG/'
 #     base_path_data = base_path
 
-base_path = './'
+base_path = '../outputs'
 base_path_data = './data/'
 
-n_subjects_train = 2
-n_subjects_valid = 2
+n_subjects_train = None #2
+n_subjects_valid = None #2
+
+###############################################################
 
 class ParseListAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -68,8 +70,8 @@ def parse_args():
         "--path_valid_ids",
         type=str,
         #default="/home/bru/PycharmProjects/DDPM-EEG/data/ids/ids_sleep_edfx_cassette_valid.csv",
-        # default="../data/ids/ids_sleep_edfx_cassette_double_valid.csv",
-        default="../data/ids/ids_sleep_edfx_cassette_double_valid_same_as_train.csv",
+        default="../data/ids/ids_sleep_edfx_cassette_double_valid.csv",
+        # default="../data/ids/ids_sleep_edfx_cassette_double_valid_same_as_train.csv",
     )
     parser.add_argument(
         "--path_cached_data",
@@ -197,7 +199,8 @@ def main(args):
 
     total_start = time.time()
 
-    init_batch = first(train_loader)['eeg'].to(device)[:,:,36:-36]
+    init_batch = first(train_loader)['eeg'].to(device)[:,:,36:-36] # remove first and last 36 samples to avoid edge effects
+    print(f"Init batch shape: {init_batch.shape}")
 
     for epoch in range(start_epoch, n_epochs):
         model.train()
@@ -266,7 +269,8 @@ def main(args):
                                         writer=writer_train,
                                         step=epoch+1,
                                         name="RECONSTRUCTION_TRAIN",
-                                        run_dir=run_dir)
+                                        run_dir=run_dir,
+                                        file_type='mat')
         
                     reconstruction_init, _, _ = model(init_batch)
 
@@ -275,14 +279,16 @@ def main(args):
                                         writer=writer_train,
                                         step=epoch+1,
                                         name="RECONSTRUCTION_TRAIN_OVERTIME",
-                                        run_dir=run_dir)
+                                        run_dir=run_dir,
+                                        file_type='mat')
 
                     log_spectral(eeg=eeg_data[:,:,36:-36],
                                  recons=reconstruction_init[:,:,36:-36],
                                  writer=writer_val,
                                  step=epoch+1,
                                  name="SPECTROGRAM_OVERTIME", 
-                                 run_dir=run_dir)
+                                 run_dir=run_dir,
+                                 file_type='mat')
 
         writer_train.add_scalar("loss_g", gen_epoch_loss / (step + 1), epoch * len(train_loader) + step)
         writer_train.add_scalar("loss_d", disc_epoch_loss / (step + 1), epoch * len(train_loader) + step)
@@ -308,14 +314,16 @@ def main(args):
                                         writer=writer_val,
                                         step=epoch+1,
                                         name="RECONSTRUCTION_VAL",
-                                        run_dir=run_dir)
+                                        run_dir=run_dir,
+                                        file_type='mat')
 
                     log_spectral(eeg=eeg_data[:,:,36:-36],
                                  recons=reconstruction_eeg[:,:,36:-36],
                                  writer=writer_val,
                                  step=epoch+1,
                                  name="SPECTROGRAM_VAL", 
-                                 run_dir=run_dir)
+                                 run_dir=run_dir,
+                                 file_type='mat')
 
                     recons_loss = l1_loss(reconstruction_eeg.float(),
                                           eeg_data.float())

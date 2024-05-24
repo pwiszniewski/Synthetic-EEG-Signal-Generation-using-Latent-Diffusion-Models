@@ -59,8 +59,11 @@ def get_datalist(
     return data_dicts
 
 
-def train_dataloader(config, args, transforms_list, dataset):
+def train_dataloader(config, args, transforms_list, dataset, n_subjects=None):
     train_df = pd.read_csv(args.path_train_ids)
+
+    if n_subjects is not None:
+        train_df = train_df[:n_subjects]
 
     train_dicts = get_datalist(train_df, basepath=args.path_pre_processed, dataset=dataset)
 
@@ -80,8 +83,11 @@ def train_dataloader(config, args, transforms_list, dataset):
     return train_loader
 
 
-def valid_dataloader(config, args, transforms_list, dataset):
+def valid_dataloader(config, args, transforms_list, dataset, n_subjects=None):
     valid_df = pd.read_csv(args.path_valid_ids)
+
+    if n_subjects is not None:
+        valid_df = valid_df[:n_subjects]
 
     valid_dicts = get_datalist(valid_df, basepath=args.path_pre_processed, dataset=dataset)
 
@@ -96,8 +102,11 @@ def valid_dataloader(config, args, transforms_list, dataset):
     return valid_loader
 
 
-def test_dataloader(config, args, transforms_list, dataset, upper_limit=None):
+def test_dataloader(config, args, transforms_list, dataset, upper_limit=None, n_subjects=None):
     test_df = pd.read_csv(args.path_test_ids)
+
+    if n_subjects is not None:
+        test_df = test_df[:n_subjects]
 
     if upper_limit is not None:
         test_df = test_df[:upper_limit]

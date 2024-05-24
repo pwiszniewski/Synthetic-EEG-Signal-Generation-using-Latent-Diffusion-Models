@@ -37,6 +37,9 @@ import torch
 base_path = './'
 base_path_data = './data/'
 
+n_subjects_train = 2
+n_subjects_valid = 2
+
 class ParseListAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         parsed_list = ast.literal_eval(values)
@@ -65,7 +68,8 @@ def parse_args():
         "--path_valid_ids",
         type=str,
         #default="/home/bru/PycharmProjects/DDPM-EEG/data/ids/ids_sleep_edfx_cassette_valid.csv",
-        default="../data/ids/ids_sleep_edfx_cassette_double_valid.csv",
+        # default="../data/ids/ids_sleep_edfx_cassette_double_valid.csv",
+        default="../data/ids/ids_sleep_edfx_cassette_double_valid_same_as_train.csv",
     )
     parser.add_argument(
         "--path_cached_data",
@@ -78,13 +82,13 @@ def parse_args():
         "--path_pre_processed",
         type=str,
         #default="/home/bru/PycharmProjects/DDPM-EEG/data/pre-processed",
-        default="../data/physionet-sleep-data-npy",
+        default="H:\AI\Datasets\physionet_sleep\physionet-sleep-data-npy",
     )
 
     parser.add_argument(
         "--num_channels",
         type=str, action=ParseListAction,
-        default=[0, 1, 2],
+        default=[32, 32, 64],
     )
 
     parser.add_argument(
@@ -111,7 +115,6 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-
 def main(args):
     config = OmegaConf.load(args.config_file)
 
@@ -127,8 +130,8 @@ def main(args):
 
     trans = get_trans(args.dataset)
     # Getting data loaders
-    train_loader = train_dataloader(config=config, args=args, transforms_list=trans, dataset=args.dataset)
-    val_loader = valid_dataloader(config=config, args=args, transforms_list=trans, dataset=args.dataset)
+    train_loader = train_dataloader(config=config, args=args, transforms_list=trans, dataset=args.dataset, n_subjects=n_subjects_train)
+    val_loader = valid_dataloader(config=config, args=args, transforms_list=trans, dataset=args.dataset, n_subjects=n_subjects_valid)
 
     # Defining device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -14,8 +14,8 @@ folder_data.mkdir(parents=True, exist_ok=True)
 
 mne.set_config("PHYSIONET_SLEEP_PATH", folder_data.as_posix())
 
-# subject_ids = None
-subject_ids = [0, 1]
+subject_ids = None
+# subject_ids = [0, 1]
 recording_ids = None
 load_eeg_only = True
 crop_wake_mins = 30

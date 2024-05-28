@@ -96,7 +96,7 @@ def parse_args():
     parser.add_argument(
         "--spe",
         type=str,
-        default="no-spectral",
+        default="spectral",
         choices=["spectral", "no-spectral"]
     )
     parser.add_argument(

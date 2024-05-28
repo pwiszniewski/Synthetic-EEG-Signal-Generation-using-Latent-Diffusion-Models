@@ -7,8 +7,10 @@ train:
     drop_last: false
 #    base_path: 'data/sleep-edfx'
     output_dir: 'ssvep_our_lab'
-    run_dir: 'ssvep_our_lab'
+    run_dir: 'ssvep_our_lab_norm#2'
     experiment: 'AEKL'
+    normalize: True
+
 models:
   optimizer_g_lr: 0.005 #Mexer, menor 10E-4
   optimizer_d_lr: 0.0005 #Maior que o anterior 

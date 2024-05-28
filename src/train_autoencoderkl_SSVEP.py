@@ -100,7 +100,7 @@ def parse_args():
     parser.add_argument(
         "--spe",
         type=str,
-        default="no-spectral",
+        default="spectral",
         choices=["spectral", "no-spectral"]
     )
     parser.add_argument(
@@ -152,8 +152,13 @@ def main(args):
     writer_train = SummaryWriter(log_dir=str(run_dir / "train"))
     writer_val = SummaryWriter(log_dir=str(run_dir / "val"))
 
-    trans = get_trans(args.dataset)
+    # trans = get_trans(args.dataset)
     data = dataset.dataset.tensors[0]
+
+    # normalizing data
+    if config.train.normalize:
+        data = (data - data.mean()) / data.std()
+
     train_ds = Dataset(data)
 
     train_loader = DataLoader(
@@ -198,6 +203,7 @@ def main(args):
 
     print(f"Let's use {torch.cuda.device_count()} GPUs!")
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Using {device}")
     if torch.cuda.device_count() > 1:
         print("Putting the model to run in more that 1 GPU")
         model = torch.nn.DataParallel(model)

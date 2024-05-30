@@ -19,7 +19,7 @@ from torch.cuda.amp import autocast
 from torch.utils.tensorboard import SummaryWriter
 
 
-from dataset.dataset import train_dataloader, valid_dataloader
+from dataset.dataset import train_dataloader, valid_dataloader, get_trans
 from models.ldm import UNetModel
 from training import train_ldm
 from util import log_mlflow, ParseListAction, setup_run_dir
@@ -28,7 +28,12 @@ from util import log_mlflow, ParseListAction, setup_run_dir
 # for reproducibility purposes set a seed
 
 set_determinism(42)
+base_path = '../outputs'
 
+n_subjects_train = None #2
+n_subjects_valid = None #2
+
+############################################################################################################
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -37,54 +42,65 @@ def parse_args():
         "--config_file",
         type=str,
         #default="/home/bru/PycharmProjects/DDPM-EEG/config/config_ldm.yaml",
-        default="/project/config/config_ldm.yaml",
+        default="../config/config_ldm.yaml",
         help="Path to config file with all the training parameters needed",
     )
     parser.add_argument(
         "--path_train_ids",
         type=str,
         #default="/home/bru/PycharmProjects/DDPM-EEG/data/ids/ids_sleep_edfx_cassette_train.csv",
-        default="/project/data/ids/ids_sleep_edfx_cassette_double_train.csv",
+        default="../data/ids/ids_sleep_edfx_cassette_double_train.csv",
     )
 
     parser.add_argument(
         "--path_valid_ids",
         type=str,
         #default="/home/bru/PycharmProjects/DDPM-EEG/data/ids/ids_sleep_edfx_cassette_valid.csv",
-        default="/project/data/ids/ids_sleep_edfx_cassette_double_valid.csv",
+        default="../data/ids/ids_sleep_edfx_cassette_double_valid.csv",
+        # default="../data/ids/ids_sleep_edfx_cassette_double_valid_same_as_train.csv",
     )
     parser.add_argument(
         "--path_cached_data",
         type=str,
         #default="/home/bru/PycharmProjects/DDPM-EEG/data/pre",
-        default="/data/pre",
+        default="../data/pre",
     )
 
     parser.add_argument(
         "--path_pre_processed",
         type=str,
         #default="/home/bru/PycharmProjects/DDPM-EEG/data/pre-processed",
-        default="/data/physionet-sleep-data-npy",
+        default="H:\AI\Datasets\physionet_sleep\physionet-sleep-data-npy",
     )
     parser.add_argument(
         "--num_channels",
         type=str, action=ParseListAction,
+        default=[32, 32, 64],
         )
     parser.add_argument("--autoencoderkl_config_file_path",
                         help="Path to the .pth model from the stage1.",
-                        default="/project/config/config_aekl_eeg.yaml")
+                        default="../config/config_aekl_eeg.yaml")
                         #default="/home/bru/PycharmProjects/DDPM-EEG/config/config_aekl_eeg.yaml")
 
     parser.add_argument("--best_model_path",
-                        help="Path to the .pth model from the stage1.",)
-                        #default="/home/bru/PycharmProjects/DDPM-EEG/aekl_eeg_may_30_3/aekl_eeg_32-32-64_spectral_4h/best_model.pth")
+                        help="Path to the .pth model from the stage1.",
+                        default="../outputs/aekl_eeg/aekl_eeg_no-spectral_edfx#3")
     parser.add_argument(
         "--spe",
         type=str,
+        default="spectral",
+        choices=["spectral", "no-spectral"]
     )
     parser.add_argument(
         "--latent_channels",
         type=int,
+        default=3,
+    )
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        choices=["edfx", "shhs", "shhsh"],
+        default="edfx",
     )
 
     args = parser.parse_args()
@@ -110,7 +126,7 @@ def main(args):
     set_determinism(seed=config.train.seed)
     print_config()
 
-    run_dir, resume = setup_run_dir(config=config, args=args)
+    run_dir, resume = setup_run_dir(config=config, args=args, base_path=base_path)
 
     # Getting write training and validation data
 
@@ -118,8 +134,13 @@ def main(args):
     writer_val = SummaryWriter(log_dir=str(run_dir / "val"))
 
     # Getting data loaders
-    train_loader = train_dataloader(config=config, args=args)
-    val_loader = valid_dataloader(config=config, args=args)
+    # train_loader = train_dataloader(config=config, args=args)
+    # val_loader = valid_dataloader(config=config, args=args)
+    trans = get_trans(args.dataset)
+    # Getting data loaders
+    train_loader = train_dataloader(config=config, args=args, transforms_list=trans, dataset=args.dataset, n_subjects=n_subjects_train)
+    val_loader = valid_dataloader(config=config, args=args, transforms_list=trans, dataset=args.dataset, n_subjects=n_subjects_valid)
+
     # Defining device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using {device}")
@@ -196,7 +217,9 @@ def main(args):
     autoencoderkl = autoencoderkl.to(device)
     diffusion.to(device)
 
-    scheduler = DDPMScheduler(num_train_timesteps=1000, beta_schedule="linear",
+    # scheduler = DDPMScheduler(num_train_timesteps=1000, beta_schedule="linear",
+    #                           beta_start=0.0015, beta_end=0.0195)
+    scheduler = DDPMScheduler(num_train_timesteps=1000, schedule='linear_beta',
                               beta_start=0.0015, beta_end=0.0195)
     
     scheduler.to(device)

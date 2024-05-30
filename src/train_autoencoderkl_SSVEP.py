@@ -202,7 +202,8 @@ def main(args):
     discriminator = PatchDiscriminator(**discriminator_dict)
 
     print(f"Let's use {torch.cuda.device_count()} GPUs!")
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = 'cuda'
     print(f"Using {device}")
     if torch.cuda.device_count() > 1:
         print("Putting the model to run in more that 1 GPU")

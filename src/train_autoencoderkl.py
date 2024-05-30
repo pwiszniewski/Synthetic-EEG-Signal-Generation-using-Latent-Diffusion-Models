@@ -136,7 +136,8 @@ def main(args):
     val_loader = valid_dataloader(config=config, args=args, transforms_list=trans, dataset=args.dataset, n_subjects=n_subjects_valid)
 
     # Defining device
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = 'cuda'
     print(f"Using {device}")
 
     # Defining model

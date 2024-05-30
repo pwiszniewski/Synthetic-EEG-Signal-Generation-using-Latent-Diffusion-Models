@@ -104,11 +104,18 @@ def get_epochs_spectrum(eeg_data, recons):
     fig, ax = plt.subplots(1, 1, figsize=(10, 4))
     legend_list = ['Origional', 'Reconstructed']
     colours = ['red', 'blue']
-    spectral = epoch_original.compute_psd(fmax=12)
+    # spectral = epoch_original.compute_psd(fmax=12)
+    spectral = epoch_original.compute_psd()
     spectral.plot(axes=ax, color="red", spatial_colors=False,
                   show=False, ci='range')
 
-    spectral_rec = epoch_recont.compute_psd(fmax=12)
+    # spectral_rec = epoch_recont.compute_psd(fmax=12)
+    spectral_rec = epoch_recont.compute_psd()
+    # # check if Nans are present
+    # if np.isnan(spectral_rec._data).any():
+    #     print('Nans present in the data')
+    #     spectral_rec._data = np.nan_to_num(spectral_rec._data)
+
     spectral_rec.plot(axes=ax, color="blue", spatial_colors=False,
                   show=False, ci='range')
 
@@ -164,6 +171,8 @@ def log_reconstructions(
         file_type: str = 'npy'
 ):
     assert file_type in ['npy', 'mat'], "File type must be 'npy' or 'mat'"
+    img = img.cpu()
+    recons = recons.cpu()
     fig = get_figure(
         img,
         recons,
@@ -190,7 +199,9 @@ def log_spectral(
         file_type: str = 'pkl'
 ):
     assert file_type in ['pkl', 'mat'], "File type must be 'pkl' or 'mat'"
-    fig, spectral, spectral_rec  = get_epochs_spectrum(
+    eeg = eeg.cpu()
+    recons = recons.cpu()
+    fig, spectral, spectral_rec = get_epochs_spectrum(
         eeg,
         recons,
     )

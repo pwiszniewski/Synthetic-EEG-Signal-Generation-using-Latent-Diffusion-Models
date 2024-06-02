@@ -22,7 +22,7 @@ from torch.utils.tensorboard import SummaryWriter
 from dataset.dataset import train_dataloader, valid_dataloader, get_trans
 from models.ldm import UNetModel
 from training import train_ldm
-from util import log_mlflow, ParseListAction, setup_run_dir
+from util import log_mlflow, ParseListAction, setup_run_dir, get_experiment_prefix
 
 # print_config()
 # for reproducibility purposes set a seed
@@ -126,7 +126,9 @@ def main(args):
     set_determinism(seed=config.train.seed)
     print_config()
 
-    run_dir, resume = setup_run_dir(config=config, args=args, base_path=base_path)
+    experiment_prefix = get_experiment_prefix()
+    run_dir, resume = setup_run_dir(config=config, args=args, base_path=base_path, experiment_prefix=experiment_prefix)
+    print(f"Saving to {run_dir}")
 
     # Getting write training and validation data
 

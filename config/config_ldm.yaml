@@ -3,10 +3,10 @@ train:
     batch_size: 1024
     n_epochs: 5000
     eval_freq: 50
-    num_workers: 25
+    num_workers: 1
     experiment: 'DDPM'
-    output_dir: '/project/outputs'
-    data_root: '/data/sleep-edfx/'
+    output_dir: 'ldm_eeg'
+    data_root: 'data/sleep-edfx/'
     run_dir: 'ldm_eeg'
     drop_last: false
     base_lr: 0.0001

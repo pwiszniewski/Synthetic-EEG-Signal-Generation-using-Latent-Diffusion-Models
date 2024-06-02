@@ -1,6 +1,7 @@
 """Utility functions for training."""
 import argparse
 import ast
+import datetime
 from pathlib import Path, PosixPath
 
 import mlflow.pytorch
@@ -27,7 +28,7 @@ class ParseListAction(argparse.Action):
         setattr(namespace, self.dest, parsed_list)
 
 
-def setup_run_dir(config, args, base_path):
+def setup_run_dir(config, args, base_path, experiment_prefix=None):
     # Create output directory
 
     output_dir = Path(base_path) / config.train.output_dir
@@ -36,7 +37,8 @@ def setup_run_dir(config, args, base_path):
     # Extract number of channels from list from args
     # convert to string
     #num_channels = '-'.join(str(x) for x in args.num_channels)
-    run_dir = output_dir / str(config.train.run_dir+"_"+args.spe+"_"+args.dataset)
+    # run_dir = output_dir / experiment_prefix + str(config.train.run_dir) + f"_{args.spe}_{args.dataset}"
+    run_dir = output_dir / f'{experiment_prefix}_{str(config.train.run_dir)}_{args.spe}_{args.dataset}'
     if run_dir.exists() and (run_dir / "checkpoint.pth").exists():
         resume = True
     else:
@@ -261,6 +263,7 @@ def log_ldm_sample_unconditioned(
         device: torch.device,
         scale_factor: float = 1.0,
         images: torch.Tensor = None,
+        run_dir: Union[str, Path] = None
 ) -> None:
     latent = torch.randn((1,) + spatial_shape)
     latent = latent.to(device)
@@ -272,11 +275,27 @@ def log_ldm_sample_unconditioned(
     x_hat = stage1.model.decode(latent / scale_factor)
     x_hat_no_sacle = stage1.model.decode(latent)
 
-    log_spectral(images, x_hat, writer, step+1, name="SAMPLE_UNCONDITIONED",)
-
-    log_spectral(images, x_hat_no_sacle, writer, step+1, name="SAMPLE_NO_SCALE_UNCONDITIONED")
-
-    log_spectral(x_hat, x_hat_no_sacle, writer, step+1, name="SAMPLE_COMPARE_SCALE_UNCONDITIONED")
+    log_spectral(eeg=images,
+                 recons=x_hat,
+                 writer=writer,
+                 step=step+1,
+                 name="SAMPLE_UNCONDITIONED",
+                 run_dir=run_dir,
+                 file_type='mat')
+    log_spectral(eeg=images,
+                 recons=x_hat_no_sacle,
+                 writer=writer,
+                 step=step+1,
+                 name="SAMPLE_NO_SCALE_UNCONDITIONED",
+                 run_dir=run_dir,
+                 file_type='mat')
+    log_spectral(eeg=x_hat,
+                 recons=x_hat_no_sacle,
+                 writer=writer,
+                 step=step+1,
+                 name="SAMPLE_COMPARE_SCALE_UNCONDITIONED",
+                 run_dir=run_dir,
+                 file_type='mat')
 
     img_0 = x_hat[0, 0, :].cpu().numpy()
     fig = plt.figure(dpi=300)
@@ -293,9 +312,9 @@ def log_diffusion_sample_unconditioned(
         writer: SummaryWriter,
         step: int,
         device: torch.device,
-        run_dir,
         inferer: object,
         images: torch.Tensor = None,
+        run_dir: Union[str, Path] = None
 ) -> None:
     latent = torch.randn((1,) + spatial_shape)
     latent = latent.to(device)
@@ -303,7 +322,13 @@ def log_diffusion_sample_unconditioned(
     with autocast(enabled=True):
         images = inferer.sample(input_noise=latent, diffusion_model=model, scheduler=scheduler)
 
-    log_spectral(eeg=images, recons=latent, writer=writer, step=step+1, name="SAMPLE_UNCONDITIONED", run_dir=run_dir)
+    log_spectral(eeg=images,
+                 recons=latent,
+                 writer=writer,
+                 step=step+1,
+                 name="SAMPLE_UNCONDITIONED",
+                 run_dir=run_dir,
+                 file_type='mat')
 
     img_0 = latent[0, 0, :].cpu().numpy()
     fig = plt.figure(dpi=300)
@@ -316,3 +341,26 @@ def extract(a, t, x_shape):
     b, *_ = t.shape
     out = a.gather(-1, t)
     return out.reshape(b, *((1,) * (len(x_shape) - 1)))
+
+
+def convert_to_base60(x):
+    if x == 0:
+        return "Γ"
+    digits = []
+    while x > 0:
+        digits.append(x % 60)
+        x //= 60
+    digits.reverse()
+    signs = "ΓΔΘΞΦΨΩΠABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+    return "".join(signs[digit] for digit in digits)
+
+
+def get_experiment_prefix():
+    now = datetime.datetime.now()
+    current_time_string = f"{now.year % 10:01d}" \
+                        f"{now.month:02d}" \
+                        f"{now.day:02d}_" \
+                        f"{now.hour:02d}" \
+                        f"{now.minute:02d}" \
+                        f"{convert_to_base60(now.second)}"
+    return current_time_string

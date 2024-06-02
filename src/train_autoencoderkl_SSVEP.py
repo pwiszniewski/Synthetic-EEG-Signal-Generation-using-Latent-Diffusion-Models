@@ -60,7 +60,7 @@ def parse_args():
         type=str,
         #default="/home/bru/PycharmProjects/DDPM-EEG/config/config_aekl_eeg.yaml",
         # default="/project/config/config_encoder_eeg.yaml",
-        default="../config/config_ssvep_our_lab.yaml",
+        default="../config/config_aekl_SSVEP_our_lab.yaml",
         help="Path to config file with all the training parameters needed",
     )
     parser.add_argument(

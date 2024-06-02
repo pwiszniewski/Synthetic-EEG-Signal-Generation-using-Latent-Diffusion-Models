@@ -334,6 +334,7 @@ def train_ldm(
     device: torch.device,
     run_dir: Path,
     scale_factor: float = 1.0,
+    fun_get_data: callable = lambda x: x['eeg']
 ) -> float:
     scaler = GradScaler()
     raw_model = model.module if hasattr(model, "module") else model
@@ -348,6 +349,8 @@ def train_ldm(
         writer=writer_val,
         sample=False,
         scale_factor=scale_factor,
+        run_dir=run_dir,
+        fun_get_data=fun_get_data,
     )
     print(f"epoch {start_epoch} val loss: {val_loss:.4f}")
 
@@ -363,6 +366,7 @@ def train_ldm(
             writer=writer_train,
             scaler=scaler,
             scale_factor=scale_factor,
+            fun_get_data=fun_get_data,
         )
 
         if (epoch + 1) % eval_freq == 0:
@@ -377,6 +381,7 @@ def train_ldm(
                 sample=True if (epoch + 1) % (eval_freq * 2) == 0 else False,
                 scale_factor=scale_factor,
                 run_dir=run_dir,
+                fun_get_data=fun_get_data,
             )
 
             print(f"epoch {epoch + 1} val loss: {val_loss:.4f}")
@@ -415,13 +420,14 @@ def train_epoch_ldm(
     writer: SummaryWriter,
     scaler: GradScaler,
     scale_factor: float = 1.0,
+    fun_get_data: callable = lambda x: x,
 ) -> None:
     model.train()
 
     pbar = tqdm(enumerate(loader), total=len(loader))
     for step, x in pbar:
 
-        images = x['eeg'].to(device)
+        images = fun_get_data(x).to(device)
         timesteps = torch.randint(0, scheduler.num_train_timesteps, (images.shape[0],), device=device).long()
 
         optimizer.zero_grad(set_to_none=True)
@@ -467,6 +473,8 @@ def eval_ldm(
     sample: bool = False,
     scale_factor: float = 1.0,
     run_dir: Union[Path, str] = None,
+    fun_get_data: callable = lambda x: x,
+
 ) -> float:
     model.eval()
     raw_stage1 = stage1.module if hasattr(stage1, "module") else stage1
@@ -474,7 +482,8 @@ def eval_ldm(
     total_losses = OrderedDict()
 
     for x in loader:
-        images = x["eeg"].to(device)	
+        # images = x["eeg"].to(device)
+        images = fun_get_data(x).to(device)
         timesteps = torch.randint(0, scheduler.num_train_timesteps, (images.shape[0],), device=device).long()
 
         with autocast(enabled=True):

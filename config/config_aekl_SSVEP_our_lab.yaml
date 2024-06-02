@@ -6,8 +6,8 @@ train:
     num_workers: 1
     drop_last: false
 #    base_path: 'data/sleep-edfx'
-    output_dir: 'ssvep_our_lab'
-    run_dir: 'ssvep_our_lab_norm#2'
+    output_dir: 'aekl_ssvep_our_lab'
+    run_dir: 'ssvep_our_lab_norm'
     experiment: 'AEKL'
     normalize: True
 

@@ -244,8 +244,6 @@ def main(args):
     autoencoderkl = autoencoderkl.to(device)
     diffusion.to(device)
 
-    # scheduler = DDPMScheduler(num_train_timesteps=1000, beta_schedule="linear",
-    #                           beta_start=0.0015, beta_end=0.0195)
     scheduler = DDPMScheduler(num_train_timesteps=1000, schedule='linear_beta',
                               beta_start=0.0015, beta_end=0.0195)
     

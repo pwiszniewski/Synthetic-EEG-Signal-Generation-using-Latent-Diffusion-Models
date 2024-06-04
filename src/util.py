@@ -198,9 +198,15 @@ def log_spectral(
         run_dir,
         step: int,
         name: str = "SPECTRAL_RECONSTRUCTION",
-        file_type: str = 'pkl'
+        file_type: str = 'pkl',
+        prefix: str = '',
+        signal_names: list = None
 ):
     assert file_type in ['pkl', 'mat'], "File type must be 'pkl' or 'mat'"
+    if signal_names is not None:
+        assert len(signal_names) == 2, "Number of signal names must be equal to the number of signals"
+    else:
+        signal_names = ['original', 'reconstructed']
     eeg = eeg.cpu()
     recons = recons.cpu()
     fig, spectral, spectral_rec = get_epochs_spectrum(
@@ -208,14 +214,14 @@ def log_spectral(
         recons,
     )
     writer.add_figure(f"{name}", fig, step)
-    name_original = f"original_spe_{name}_{step}.{file_type}"
-    name_reconstr = f"reconstr_spe_{name}_{step}.{file_type}"
-    fig_name = f"compare_{name}_{step}.png"
+    name_original = f"{prefix}{signal_names[0]}_{name}_{step}.{file_type}"
+    name_reconstr = f"{prefix}{signal_names[1]}_{name}_{step}.{file_type}"
+    fig_name = f"{prefix}compare_{name}_{step}.png"
     fir_dir = Path(run_dir)
     fig.savefig(str(fir_dir / fig_name), bbox_inches='tight')
     if file_type == 'mat':
-        scipy.io.savemat(str(run_dir / name_original), {'original': eeg})
-        scipy.io.savemat(str(run_dir / name_reconstr), {'reconstr': recons})
+        scipy.io.savemat(str(run_dir / name_original), {signal_names[0]: eeg})
+        scipy.io.savemat(str(run_dir / name_reconstr), {signal_names[1]: recons})
     else:
         with open(str(run_dir / name_original), 'wb') as fo:
             joblib.dump(spectral, fo)
@@ -263,9 +269,11 @@ def log_ldm_sample_unconditioned(
         device: torch.device,
         scale_factor: float = 1.0,
         images: torch.Tensor = None,
-        run_dir: Union[str, Path] = None
+        run_dir: Union[str, Path] = None,
+        prefix: str = ''
 ) -> None:
-    latent = torch.randn((1,) + spatial_shape)
+    # latent = torch.randn((1,) + spatial_shape)
+    latent = torch.randn((images.shape[0], ) + spatial_shape)
     latent = latent.to(device)
 
     for t in tqdm(scheduler.timesteps, ncols=70):
@@ -273,29 +281,38 @@ def log_ldm_sample_unconditioned(
         latent, _ = scheduler.step(noise_pred, t, latent)
 
     x_hat = stage1.model.decode(latent / scale_factor)
-    x_hat_no_sacle = stage1.model.decode(latent)
+    x_hat_no_scale = stage1.model.decode(latent)
 
+    # log original and reconstructed images
     log_spectral(eeg=images,
                  recons=x_hat,
                  writer=writer,
                  step=step+1,
-                 name="SAMPLE_UNCONDITIONED",
+                 name=f"sample_scaled_unconditioned",
                  run_dir=run_dir,
-                 file_type='mat')
+                 file_type='mat',
+                 prefix=prefix,
+                 signal_names=['original', 'reconst'])
+    # log original and reconstructed images without scaling
     log_spectral(eeg=images,
-                 recons=x_hat_no_sacle,
+                 recons=x_hat_no_scale,
                  writer=writer,
                  step=step+1,
-                 name="SAMPLE_NO_SCALE_UNCONDITIONED",
+                 name="sample_no_scale_unconditioned",
                  run_dir=run_dir,
-                 file_type='mat')
+                 file_type='mat',
+                 prefix=prefix,
+                 signal_names=['original', 'reconst'])
+    # log reconstructed images, no original, with scaling and without scaling
     log_spectral(eeg=x_hat,
-                 recons=x_hat_no_sacle,
+                 recons=x_hat_no_scale,
                  writer=writer,
                  step=step+1,
-                 name="SAMPLE_COMPARE_SCALE_UNCONDITIONED",
+                 name="sample_reconstructed_unconditioned",
                  run_dir=run_dir,
-                 file_type='mat')
+                 file_type='mat',
+                 prefix=prefix,
+                 signal_names=['scaled', 'no_scale'])
 
     img_0 = x_hat[0, 0, :].cpu().numpy()
     fig = plt.figure(dpi=300)

@@ -370,6 +370,7 @@ def train_ldm(
         )
 
         if (epoch + 1) % eval_freq == 0:
+            is_last_sample = epoch > n_epochs - eval_freq * 2
             val_loss = eval_ldm(
                 model=model,
                 stage1=stage1,
@@ -379,6 +380,7 @@ def train_ldm(
                 step=len(train_loader) * epoch,
                 writer=writer_val,
                 sample=True if (epoch + 1) % (eval_freq * 2) == 0 else False,
+                is_last_sample=is_last_sample,
                 scale_factor=scale_factor,
                 run_dir=run_dir,
                 fun_get_data=fun_get_data,
@@ -428,7 +430,7 @@ def train_epoch_ldm(
     for step, x in pbar:
 
         images = fun_get_data(x).to(device)
-        timesteps = torch.randint(0, scheduler.num_train_timesteps, (images.shape[0],), device=device).long()
+        timesteps = torch.randint(0, scheduler.num_train_timesteps, (images.shape[0],), device=device).long() # time steps for the diffusion model to predict the noise at each time step
 
         optimizer.zero_grad(set_to_none=True)
         with autocast(enabled=True):
@@ -471,6 +473,7 @@ def eval_ldm(
     step: int,
     writer: SummaryWriter,
     sample: bool = False,
+    is_last_sample: bool = False,
     scale_factor: float = 1.0,
     run_dir: Union[Path, str] = None,
     fun_get_data: callable = lambda x: x,
@@ -524,6 +527,7 @@ def eval_ldm(
             scale_factor=scale_factor,
             images=images,
             run_dir=run_dir,
+            prefix='_' if is_last_sample else ''
         )
 
     return total_losses["loss"]
